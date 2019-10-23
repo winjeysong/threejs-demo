@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>My first three.js app</title>
+    <style>
+        body {
+            margin: 0;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%
+        }
+    </style>
+</head>
+
+<body>
+<script src="library/three.js"></script>
+<script src="library/checker.js"></script>
+<script>
+	if (WEBGL.isWebGLAvailable()) {
+		// 创建场景
+		var scene = new THREE.Scene();
+		// 使用透视相机
+		var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+		// 渲染器
+		var renderer = new THREE.WebGLRenderer();
+		renderer.setSize(window.innerWidth, window.innerHeight);
+		// 添加canvas元素到body中
+		document.body.appendChild(renderer.domElement);
+
+		// 创建立方体
+		var geometry = new THREE.BoxGeometry(1, 1, 1);
+		// 创建材质
+		var material = new THREE.MeshBasicMaterial({color: 0x00ff00});
+		// 创建网格
+		var cube = new THREE.Mesh(geometry, material);
+		// 放置物体至（0，0，0）
+		scene.add(cube);
+		// 防止物体和摄像机在同一位置
+		camera.position.z = 5;
+
+		// 动画循环
+		function animate() {
+			// 请求动画帧
+			requestAnimationFrame(animate);
+			cube.rotation.x += 0.01;
+			cube.rotation.y += 0.01;
+			cube.rotation.z += 0.01;
+			renderer.render(scene, camera);
+		}
+		animate();
+	} else {
+		var warning = WEBGL.getWebGLErrorMessage();
+		document.body.appendChild(warning);
+	}
+</script>
+</body>
+
+</html>
