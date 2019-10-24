@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>线条</title>
+    <style>
+        body {
+            margin: 0;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%
+        }
+    </style>
+</head>
+
+<body>
+<canvas id="canvas"></canvas>
+<script src="../library/three.js"></script>
+<script src="../library/checker.js"></script>
+<script>
+    if (WEBGL.isWebGLAvailable()) {
+        const renderer = new THREE.WebGLRenderer({ canvas: document.querySelector('#canvas') });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 500);
+        camera.position.set(0, 0, 100);
+        camera.lookAt(0, 0, 0);
+
+        const scene = new THREE.Scene();
+
+        const material = new THREE.LineBasicMaterial({ color: 0x0000ff });
+
+        const geometry = new THREE.Geometry();
+        const Vec3 = THREE.Vector3;
+        geometry.vertices.push(new Vec3(0, 0, 0));
+        geometry.vertices.push(new Vec3(0, 10, 0));
+        geometry.vertices.push(new Vec3(10, 0, 0));
+        geometry.vertices.push(new Vec3(10, -10, 0));
+        geometry.vertices.push(new Vec3(0, 0, 0));
+
+        const line = new THREE.Line(geometry, material);
+
+        scene.add(line);
+        renderer.render(scene, camera);
+
+    } else {
+        var warning = WEBGL.getWebGLErrorMessage();
+        document.body.appendChild(warning);
+    }
+</script>
+</body>
+
+</html>
