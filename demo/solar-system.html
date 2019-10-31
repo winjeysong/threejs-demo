@@ -4,6 +4,7 @@
 <head>
     <meta charset="utf-8">
     <title>太阳系模型</title>
+    <link rel="stylesheet" type="text/css" href="../library/dat.gui.css" />
     <style>
         html, body {
             margin: 0;
@@ -22,6 +23,7 @@
 <canvas id="canvas"></canvas>
 <script src="../library/three.js"></script>
 <script src="../library/checker.js"></script>
+<script src="../library/dat.gui.js"></script>
 <script src="../utils/index.js"></script>
 <script>
 
@@ -55,32 +57,46 @@
 
         // 添加物体
         const objs = [];
-        // 要保证地球比太阳小，且地球和太阳绕着同一中心转，需要创建一个Object3D实例
-        const solarSystem = new THREE.Object3D();
-        scene.add(solarSystem);
-        objs.push(solarSystem);
-
         const sphereGeo = new THREE.SphereBufferGeometry(1, 6, 6); // 复用该geometry
 
+        // 要保证地球比太阳小，且地球和太阳绕着同一中心转，需要创建一个Object3D实例: 太阳系轨道
+        const solarSystem = new THREE.Object3D();
+        scene.add(solarSystem);
+        objs.push(solarSystem); // 行星绕太阳公转
         // 太阳
         const sunMaterial = new THREE.MeshPhongMaterial({ emissive: 0xffff00 });
         const sunMesh = new THREE.Mesh(sphereGeo, sunMaterial);
         sunMesh.scale.set(5, 5, 5); // 放大
         solarSystem.add(sunMesh);
-        objs.push(sunMesh);
+        objs.push(sunMesh); // 太阳自转
+
+        // 地球轨道，依赖于太阳系轨道
+        const earthOrbit = new THREE.Object3D();
+        earthOrbit.position.x = 10;
+        solarSystem.add(earthOrbit);
+        objs.push(earthOrbit); // 行星绕地球公转
         // 地球
         const earthMaterial = new THREE.MeshPhongMaterial({ color: 0x2233ff, emissive: 0x112244 });
         const earthMesh = new THREE.Mesh(sphereGeo, earthMaterial);
-        earthMesh.position.x = 10;
-        solarSystem.add(earthMesh);
-        objs.push(earthMesh);
+        earthOrbit.add(earthMesh);
+        objs.push(earthMesh); // 地球自转
+
+        // 月球轨道，依赖于地球轨道
+        const moonOrbit = new THREE.Object3D();
+        moonOrbit.position.x = 2;
+        earthOrbit.add(moonOrbit);
+        // 月球
+        const moonMaterial = new THREE.MeshPhongMaterial({ color: 0x888888, emissive: 0x222222 });
+        const moonMesh = new THREE.Mesh(sphereGeo, moonMaterial);
+        moonMesh.scale.set(.5, .5, .5);
+        moonOrbit.add(moonMesh);
+        objs.push(moonMesh); // 月球自转
 
         // 动画循环
         function animate(time) {
             // 请求动画帧
             requestAnimationFrame(animate);
             time *= 0.001;
-
             // ...animate
             objs.forEach(o => {
                 o.rotation.y = time;
@@ -95,6 +111,26 @@
             renderer.render(scene, camera);
         }
         animate();
+
+        // 辅助工具，更好地查看辅助轴和辅助网格
+        const gui = new dat.GUI();
+
+        /**
+         * @param node
+         * @param label
+         * @param units 网格，为 8 就生成 8*8 的网格，默认为10
+         * @param visible 默认是否可见
+         */
+        function makeAxisGrid(node, label, { units, visible } = {}) {
+            const helper = new AxisGridHelper(node, visible, units);
+            gui.add(helper, 'visible').name(label);
+        }
+
+        makeAxisGrid(solarSystem, 'solarSystem', { units: 25, visible: true });
+        makeAxisGrid(sunMesh, 'sunMesh');
+        makeAxisGrid(earthOrbit, 'earthOrbit');
+        makeAxisGrid(earthMesh, 'earthMesh');
+        makeAxisGrid(moonMesh, 'moonMesh');
 
     } else {
         var warning = WEBGL.getWebGLErrorMessage();
