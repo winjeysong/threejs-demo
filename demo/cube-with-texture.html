@@ -15,10 +15,37 @@
             height: 100% !important;
             display: block;
         }
+
+        #loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #loading .progress {
+            margin: 1.5em;
+            border: 1px solid white;
+            width: 50vw;
+        }
+        #loading .progress-bar {
+            margin: 2px;
+            background: white;
+            height: 1em;
+            transform-origin: top left;
+            transform: scaleX(0);
+        }
     </style>
 </head>
 
 <body>
+<canvas id="canvas"></canvas>
+<div id="loading">
+    <div class="progress"><div class="progress-bar"></div></div>
+</div>
 <script src="../library/three.js"></script>
 <script src="../library/checker.js"></script>
 <script src="../utils/index.js"></script>
@@ -29,7 +56,7 @@
         // 使用透视相机
         var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         // 渲染器
-        var renderer = new THREE.WebGLRenderer();
+        var renderer = new THREE.WebGLRenderer({ canvas: document.querySelector('#canvas') });
         renderer.setSize(window.innerWidth, window.innerHeight);
         // 添加canvas元素到body中
         document.body.appendChild(renderer.domElement);
@@ -38,14 +65,11 @@
 
         // 创建立方体
         var geometry = new THREE.BoxGeometry(1, 1, 1);
+        // 创建载入状态管理
+        const loadMng = new THREE.LoadingManager();
+        const loader = new THREE.TextureLoader(loadMng);
         // 创建材质
-        const loader = new THREE.TextureLoader();
         var material = new THREE.MeshPhongMaterial({ map: loader.load('../assets/images/wall.jpg') });
-        // 创建网格
-        var cube = new THREE.Mesh(geometry, material);
-        cube.position.set(-1,0,0);
-        scene.add(cube);
-        cubes.push(cube);
 
         // 另外一个六面不同图片的立方体
         const materials = [
@@ -56,10 +80,28 @@
             new THREE.MeshBasicMaterial({map: loader.load('../assets/images/flower-5.jpg')}),
             new THREE.MeshBasicMaterial({map: loader.load('../assets/images/flower-6.jpg')}),
         ];
-        const anotherCube = new THREE.Mesh(geometry, materials);
-        anotherCube.position.set(1, 0, 0);
-        scene.add(anotherCube);
-        cubes.push(anotherCube);
+
+        // 获取元素
+        const loadingEle = document.querySelector('#loading');
+        const progressBarEle = document.querySelector('.progress-bar');
+
+        // 添加载入状态的监控
+        loadMng.onLoad = () => {
+            loadingEle.style.display = 'none';
+            var cube = new THREE.Mesh(geometry, material);
+            cube.position.set(-1,0,0);
+            scene.add(cube);
+            cubes.push(cube);
+
+            const anotherCube = new THREE.Mesh(geometry, materials);
+            anotherCube.position.set(1, 0, 0);
+            scene.add(anotherCube);
+            cubes.push(anotherCube);
+        };
+
+        loadMng.onProgress = (urlOfLastItemLoad, itemsLoaded, itemsTotal) => {
+            progressBarEle.style.transform = `scaleX(${itemsLoaded / itemsTotal})`;
+        };
 
         // 防止物体和摄像机在同一位置
         camera.position.z = 6;
