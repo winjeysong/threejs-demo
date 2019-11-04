@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>带有贴图材质的立方体</title>
+    <style>
+        html, body {
+            margin: 0;
+            height: 100%;
+        }
+
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+<script src="../library/three.js"></script>
+<script src="../library/checker.js"></script>
+<script src="../utils/index.js"></script>
+<script>
+    if (WEBGL.isWebGLAvailable()) {
+        // 创建场景
+        var scene = new THREE.Scene();
+        // 使用透视相机
+        var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        // 渲染器
+        var renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        // 添加canvas元素到body中
+        document.body.appendChild(renderer.domElement);
+
+        const cubes = [];
+
+        // 创建立方体
+        var geometry = new THREE.BoxGeometry(1, 1, 1);
+        // 创建材质
+        const loader = new THREE.TextureLoader();
+        var material = new THREE.MeshPhongMaterial({ map: loader.load('../assets/images/wall.jpg') });
+        // 创建网格
+        var cube = new THREE.Mesh(geometry, material);
+        cube.position.set(-1,0,0);
+        scene.add(cube);
+        cubes.push(cube);
+
+        // 另外一个六面不同图片的立方体
+        const materials = [
+            new THREE.MeshBasicMaterial({map: loader.load('../assets/images/flower-1.jpg')}),
+            new THREE.MeshBasicMaterial({map: loader.load('../assets/images/flower-2.jpg')}),
+            new THREE.MeshBasicMaterial({map: loader.load('../assets/images/flower-3.jpg')}),
+            new THREE.MeshBasicMaterial({map: loader.load('../assets/images/flower-4.jpg')}),
+            new THREE.MeshBasicMaterial({map: loader.load('../assets/images/flower-5.jpg')}),
+            new THREE.MeshBasicMaterial({map: loader.load('../assets/images/flower-6.jpg')}),
+        ];
+        const anotherCube = new THREE.Mesh(geometry, materials);
+        anotherCube.position.set(1, 0, 0);
+        scene.add(anotherCube);
+        cubes.push(anotherCube);
+
+        // 防止物体和摄像机在同一位置
+        camera.position.z = 6;
+
+        const lightColor = 0xffffff;
+        const intensity = 1;
+        const light = new THREE.DirectionalLight(lightColor, intensity);
+        light.position.set(-1, 2, 4);
+        scene.add(light);
+
+        // 动画循环
+        function animate() {
+            // 请求动画帧
+            requestAnimationFrame(animate);
+
+            cubes.forEach(cube => {
+                cube.rotation.x += 0.01;
+                cube.rotation.y += 0.01;
+                cube.rotation.z += 0.01;
+            });
+
+            if (resizeRendererToDisplaySize(renderer)) {
+                const canvas = renderer.domElement;
+                camera.aspect = canvas.clientWidth / canvas.clientHeight; // 为了解决拉伸比例失调的问题，需要设置相机的aspect为canvas的宽高比
+                camera.updateProjectionMatrix();
+            }
+
+            renderer.render(scene, camera);
+        }
+        animate();
+
+    } else {
+        var warning = WEBGL.getWebGLErrorMessage();
+        document.body.appendChild(warning);
+    }
+</script>
+</body>
+
+</html>
