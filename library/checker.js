@@ -96,3 +96,4 @@ var WEBGL = {
 };
 
 window.WEBGL = WEBGL;
+export default WEBGL;

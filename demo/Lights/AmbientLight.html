@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>环境光</title>
+    <style>
+        html, body {
+            margin: 0;
+            height: 100%;
+        }
+
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+<canvas id="canvas"></canvas>
+<script type="module">
+    import WEBGL from "../../library/checker.js";
+    import * as THREE from '../../library/three.module.js';
+    import { OrbitControls } from "../../library/orbitControls.js";
+    import { resizeRendererToDisplaySize, ColorHelper } from '../../utils/index.js';
+    import { GUI } from '../../library/dat.gui.module.js';
+
+    const canvas = document.querySelector('#canvas');
+
+    if (WEBGL.isWebGLAvailable()) {
+        // 创建场景
+        var scene = new THREE.Scene();
+        scene.background = new THREE.Color(0, 0, 0);
+        // 使用透视相机
+        var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(0, 10, 20);
+        // 渲染器
+        var renderer = new THREE.WebGLRenderer({ canvas });
+        // 第三个参数传入false，不设置canvas的CSS尺寸
+        renderer.setSize(window.innerWidth, window.innerHeight, false);
+        // 添加canvas元素到body中
+        document.body.appendChild(renderer.domElement);
+
+        // 添加控制轴，允许用户拖动控制
+        const controls = new OrbitControls(camera, canvas);
+        controls.target.set(0, 5, 0);
+        controls.update();
+
+        {
+            // 添加地面纹理，在水平和垂直方向重复绘制同一材质
+            const planeSize = 40;
+            const loader = new THREE.TextureLoader();
+            const texture = loader.load('../../assets/images/ground.png');
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.magFilter = THREE.NearestFilter;
+            const repeats = planeSize / 2;
+            texture.repeat.set(repeats, repeats);
+
+            // 用上面的纹理来创建平面
+            const planeGeometry = new THREE.PlaneBufferGeometry(planeSize, planeSize);
+            const planeMaterial = new THREE.MeshPhongMaterial({
+                map: texture,
+                side: THREE.DoubleSide,
+            });
+            const mesh = new THREE.Mesh(planeGeometry, planeMaterial);
+            mesh.rotation.x = Math.PI * -.5; // 平面默认与XY平面平行，旋转为与XZ平面平行
+            scene.add(mesh);
+        }
+
+        // 创建立方体
+        {
+            const cubeSize = 4;
+            const cubeGeometry = new THREE.BoxBufferGeometry(cubeSize, cubeSize, cubeSize);
+            const cubeMaterial = new THREE.MeshPhongMaterial({ color: '#8ac' });
+            const mesh = new THREE.Mesh(cubeGeometry, cubeMaterial);
+            mesh.position.set(cubeSize + 1, cubeSize / 2, 0);
+            scene.add(mesh);
+        }
+
+        // 创建球体
+        {
+            const sphereRadius = 3;
+            const sphereWidthDivisions = 32;
+            const sphereHeightDivisions = 16;
+            const geometry = new THREE.SphereBufferGeometry(sphereRadius, sphereWidthDivisions, sphereHeightDivisions);
+            const material = new THREE.MeshPhongMaterial({ color: '#ca8' });
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(- sphereRadius - 1, sphereRadius + 2, 0);
+            scene.add(mesh);
+        }
+
+        // 添加灯光
+        // 环境光没有方向
+        // 使物体看起来没有立体感
+        const lightColor = 0xffffff;
+        const intensity = 1;
+        const light = new THREE.AmbientLight(lightColor, intensity);
+        scene.add(light);
+
+        // 添加gui辅助工具
+        const gui = new GUI();
+        const lightColorHex = new ColorHelper(light, 'color');
+        gui.addColor(lightColorHex, 'value').name('color');
+        gui.add(light, 'intensity', 0, 2, 0.01);
+
+        // 动画循环
+        function animate() {
+            // 请求动画帧
+            requestAnimationFrame(animate);
+            if (resizeRendererToDisplaySize(renderer)) {
+                const canvas = renderer.domElement;
+                camera.aspect = canvas.clientWidth / canvas.clientHeight; // 为了解决拉伸比例失调的问题，需要设置相机的aspect为canvas的宽高比
+                camera.updateProjectionMatrix();
+            }
+            renderer.render(scene, camera);
+        }
+        animate();
+
+    } else {
+        var warning = WEBGL.getWebGLErrorMessage();
+        document.body.appendChild(warning);
+    }
+</script>
+</body>
+
+</html>

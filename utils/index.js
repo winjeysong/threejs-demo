@@ -1,4 +1,4 @@
-function resizeRendererToDisplaySize(renderer) {
+export function resizeRendererToDisplaySize(renderer) {
     const canvas = renderer.domElement;
     const pixelRatio = window.devicePixelRatio;
     const width  = canvas.clientWidth * pixelRatio | 0; // 取整
@@ -10,7 +10,7 @@ function resizeRendererToDisplaySize(renderer) {
     return needResize;
 }
 
-class AxisGridHelper {
+export class AxisGridHelper {
     constructor(node, visible = false, units) {
         const axes = new THREE.AxesHelper(); // x(red) y(green) z(blue)
         axes.material.depthTest = false; // 取消深度，即使轴在内部也能看到
@@ -36,3 +36,21 @@ class AxisGridHelper {
         this.axes.visible = v;
     }
 }
+
+// 设置16进制的色值
+export class ColorHelper {
+    constructor(obj, prop) {
+        this.obj = obj;
+        this.prop = prop;
+    }
+    get value() {
+        return `#${this.obj[this.prop].getHexString()}`
+    }
+    set value(hexStr) {
+        this.obj[this.prop].set(hexStr);
+    }
+}
+
+window.resizeRendererToDisplaySize = resizeRendererToDisplaySize;
+window.AxisGridHelper = AxisGridHelper;
+window.ColorHelper = ColorHelper;
