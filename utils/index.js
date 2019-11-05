@@ -1,3 +1,5 @@
+import * as THREE from '../library/three.module.js';
+
 export function resizeRendererToDisplaySize(renderer) {
     const canvas = renderer.domElement;
     const pixelRatio = window.devicePixelRatio;
@@ -51,6 +53,21 @@ export class ColorHelper {
     }
 }
 
+// 弧度转角度
+export class DegRadHelper {
+    constructor(obj, prop) {
+        this.obj = obj;
+        this.prop = prop;
+    }
+    get value() {
+        return THREE.Math.radToDeg(this.obj[this.prop]);
+    }
+    set value(v) {
+        this.obj[this.prop] = THREE.Math.degToRad(v);
+    }
+}
+
 window.resizeRendererToDisplaySize = resizeRendererToDisplaySize;
 window.AxisGridHelper = AxisGridHelper;
 window.ColorHelper = ColorHelper;
+window.DegRadHelper = DegRadHelper;
