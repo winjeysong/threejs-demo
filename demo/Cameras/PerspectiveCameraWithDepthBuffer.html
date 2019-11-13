@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>处理深度重叠闪烁</title>
+    <style>
+        html, body {
+            margin: 0;
+            height: 100%;
+        }
+
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+<canvas id="canvas"></canvas>
+<script type="module">
+    // https://threejsfundamentals.org/threejs/lessons/threejs-cameras.html
+    // Set near as far away from the camera as you can and not have things disappear.
+    // Set far as close to the camera as you can and not have things disappear.
+    import WEBGL from "../../library/checker.js";
+    import * as THREE from '../../library/three.module.js';
+    import { OrbitControls } from "../../library/orbitControls.js";
+    import { resizeRendererToDisplaySize, MinMaxHelper } from '../../utils/index.js';
+    import { GUI } from '../../library/dat.gui.module.js';
+
+    const canvas = document.querySelector('#canvas');
+
+    if (WEBGL.isWebGLAvailable()) {
+        // 创建场景
+        var scene = new THREE.Scene();
+        scene.background = new THREE.Color(0, 0, 0);
+        // 使用透视相机
+        var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.00001, 100);
+        camera.position.set(0, 10, 20);
+        // 渲染器
+        var renderer = new THREE.WebGLRenderer({
+            canvas,
+            logarithmicDepthBuffer: true, // 解决深度重叠引起的画面闪烁
+        });
+        // 第三个参数传入false，不设置canvas的CSS尺寸
+        renderer.setSize(window.innerWidth, window.innerHeight, false);
+        // 添加canvas元素到body中
+        document.body.appendChild(renderer.domElement);
+
+        // 添加控制轴，允许用户拖动控制
+        const controls = new OrbitControls(camera, canvas);
+        controls.target.set(0, 5, 0);
+        controls.update();
+
+        {
+            // 添加地面纹理，在水平和垂直方向重复绘制同一材质
+            const planeSize = 40;
+            const loader = new THREE.TextureLoader();
+            const texture = loader.load('../../assets/images/ground.png');
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.magFilter = THREE.NearestFilter;
+            const repeats = planeSize / 2;
+            texture.repeat.set(repeats, repeats);
+
+            // 用上面的纹理来创建平面
+            const planeGeometry = new THREE.PlaneBufferGeometry(planeSize, planeSize);
+            const planeMaterial = new THREE.MeshPhongMaterial({
+                map: texture,
+                side: THREE.DoubleSide,
+            });
+            const mesh = new THREE.Mesh(planeGeometry, planeMaterial);
+            mesh.rotation.x = Math.PI * -.5; // 平面默认与XY平面平行，旋转为与XZ平面平行
+            scene.add(mesh);
+        }
+
+        // 创建20个球体
+        {
+            const sphereRadius = 3;
+            const sphereWidthDivisions = 32;
+            const sphereHeightDivisions = 16;
+            const geometry = new THREE.SphereBufferGeometry(sphereRadius, sphereWidthDivisions, sphereHeightDivisions);
+            for (let i = 0; i < 20; i += 1) {
+                const material = new THREE.MeshPhongMaterial();
+                material.color.setHSL(i * .73, 1, 0.5);
+                const mesh = new THREE.Mesh(geometry, material);
+                mesh.position.set(- sphereRadius - 1, sphereRadius + 2, i * sphereRadius * -2.2);
+                scene.add(mesh);
+            }
+        }
+
+        // 添加灯光
+        // 平行光，太阳光就是平行光
+        // 平行光从它的起始位置指向目标位置
+        // 所以需要设置light.position和light.target.position
+        const lightColor = 0xffffff;
+        const intensity = 1;
+        const light = new THREE.DirectionalLight(lightColor, intensity);
+        light.position.set(0, 10, 0);
+        light.target.position.set(-5, 0, 0);
+        scene.add(light);
+        scene.add(light.target);
+
+        // 更新相机投影矩阵
+        function updateCamera() {
+            camera.updateProjectionMatrix();
+        }
+
+        // 添加gui辅助工具
+        const gui = new GUI();
+        gui.add(camera, 'fov', 1, 180).onChange(updateCamera);
+        const minMaxHelper = new MinMaxHelper(camera, 'near', 'far', 0.1);
+        gui.add(minMaxHelper, 'min', 0.00001, 100, 0.00001).name('near').onChange(updateCamera);
+        gui.add(minMaxHelper, 'max', 0.1, 100, 0.1).name('far').onChange(updateCamera);
+
+        // 动画循环
+        function animate() {
+            // 请求动画帧
+            requestAnimationFrame(animate);
+            if (resizeRendererToDisplaySize(renderer)) {
+                const canvas = renderer.domElement;
+                camera.aspect = canvas.clientWidth / canvas.clientHeight; // 为了解决拉伸比例失调的问题，需要设置相机的aspect为canvas的宽高比
+                camera.updateProjectionMatrix();
+            }
+            renderer.render(scene, camera);
+        }
+        animate();
+
+    } else {
+        var warning = WEBGL.getWebGLErrorMessage();
+        document.body.appendChild(warning);
+    }
+</script>
+</body>
+
+</html>

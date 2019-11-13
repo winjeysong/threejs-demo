@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>透视相机</title>
+    <style>
+        html, body {
+            margin: 0;
+            height: 100%;
+        }
+
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+            display: block;
+        }
+
+        .split {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+        }
+        .split > div {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+
+<body>
+<canvas id="canvas"></canvas>
+<div class="split">
+    <div id="view1" tabindex="1"></div>
+    <div id="view2" tabindex="2"></div>
+</div>
+<script type="module">
+    import WEBGL from "../../library/checker.js";
+    import * as THREE from '../../library/three.module.js';
+    import { OrbitControls } from "../../library/orbitControls.js";
+    import { resizeRendererToDisplaySize, MinMaxHelper } from '../../utils/index.js';
+    import { GUI } from '../../library/dat.gui.module.js';
+
+    const canvas = document.querySelector('#canvas');
+    const view1 = document.querySelector('#view1');
+    const view2 = document.querySelector('#view2');
+
+    if (WEBGL.isWebGLAvailable()) {
+        // 创建场景
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0, 0, 0);
+        // 使用透视相机
+        const camera = new THREE.PerspectiveCamera(45, 2, 0.1, 100);
+        camera.position.set(0, 10, 20);
+        // 添加相机辅助视图
+        const cameraHelper = new THREE.CameraHelper(camera);
+        scene.add(cameraHelper);
+        // 渲染器，直接渲染到id=canvas的元素中
+        const renderer = new THREE.WebGLRenderer({ canvas });
+        // 第三个参数传入false，不设置canvas的CSS尺寸
+        renderer.setSize(window.innerWidth, window.innerHeight, false);
+
+        // 添加控制轴，允许用户拖动控制
+        const controls = new OrbitControls(camera, view1);
+        controls.target.set(0, 5, 0);
+        controls.update();
+
+        // 添加相机2
+        const camera2 = new THREE.PerspectiveCamera(60, 2, 0.1, 500);
+        camera2.position.set(40, 10, 30);
+        camera2.lookAt(0, 5, 0);
+
+        // 添加控制轴
+        const controls2 = new OrbitControls(camera2, view2);
+        controls2.target.set(0, 5, 0);
+        controls2.update();
+
+        {
+            // 添加地面纹理，在水平和垂直方向重复绘制同一材质
+            const planeSize = 40;
+            const loader = new THREE.TextureLoader();
+            const texture = loader.load('../../assets/images/ground.png');
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.magFilter = THREE.NearestFilter;
+            const repeats = planeSize / 2;
+            texture.repeat.set(repeats, repeats);
+
+            // 用上面的纹理来创建平面
+            const planeGeometry = new THREE.PlaneBufferGeometry(planeSize, planeSize);
+            const planeMaterial = new THREE.MeshPhongMaterial({
+                map: texture,
+                side: THREE.DoubleSide,
+            });
+            const mesh = new THREE.Mesh(planeGeometry, planeMaterial);
+            mesh.rotation.x = Math.PI * -.5; // 平面默认与XY平面平行，旋转为与XZ平面平行
+            scene.add(mesh);
+        }
+
+        // 创建立方体
+        {
+            const cubeSize = 4;
+            const cubeGeometry = new THREE.BoxBufferGeometry(cubeSize, cubeSize, cubeSize);
+            const cubeMaterial = new THREE.MeshPhongMaterial({ color: '#8ac' });
+            const mesh = new THREE.Mesh(cubeGeometry, cubeMaterial);
+            mesh.position.set(cubeSize + 1, cubeSize / 2, 0);
+            scene.add(mesh);
+        }
+
+        // 创建球体
+        {
+            const sphereRadius = 3;
+            const sphereWidthDivisions = 32;
+            const sphereHeightDivisions = 16;
+            const geometry = new THREE.SphereBufferGeometry(sphereRadius, sphereWidthDivisions, sphereHeightDivisions);
+            const material = new THREE.MeshPhongMaterial({ color: '#ca8' });
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(- sphereRadius - 1, sphereRadius + 2, 0);
+            scene.add(mesh);
+        }
+
+        // 添加灯光
+        // 平行光，太阳光就是平行光
+        // 平行光从它的起始位置指向目标位置
+        // 所以需要设置light.position和light.target.position
+        const lightColor = 0xffffff;
+        const intensity = 1;
+        const light = new THREE.DirectionalLight(lightColor, intensity);
+        light.position.set(0, 10, 0);
+        light.target.position.set(-5, 0, 0);
+        scene.add(light);
+        scene.add(light.target);
+
+        // 添加gui辅助工具
+        const gui = new GUI();
+        gui.add(camera, 'fov', 1, 180);
+        const minMaxHelper = new MinMaxHelper(camera, 'near', 'far', 0.1);
+        gui.add(minMaxHelper, 'min', 0.1, 100, 0.1).name('near');
+        gui.add(minMaxHelper, 'max', 0.1, 100, 0.1).name('far');
+
+        // 计算元素与canvas重叠部分的宽高尺寸
+        // 设置裁剪区域和视口大小
+        // 返回宽高比
+        console.log('canvas', canvas.getBoundingClientRect());
+        console.log('view1', view1.getBoundingClientRect());
+        console.log('view2', view2.getBoundingClientRect());
+        function setScissorForElement(ele) {
+            const canvasRect = canvas.getBoundingClientRect();
+            const eleRect = ele.getBoundingClientRect();
+
+            const right = Math.min(eleRect.right, canvasRect.right) - canvasRect.left;
+            const left = Math.max(0, eleRect.left - canvasRect.left);
+            const bottom = Math.min(eleRect.bottom, canvasRect.bottom) - canvasRect.top;
+            const top = Math.max(0, eleRect.top - canvasRect.top);
+
+            const height = Math.min(canvasRect.height, bottom - top);
+            const width = Math.min(canvasRect.width, right - left);
+
+            const positiveYUpBottom = canvasRect.height - bottom;
+            const args = [left, positiveYUpBottom, width, height];
+            renderer.setScissor(...args);
+            renderer.setViewport(...args);
+
+            return width / height;
+        }
+
+        // 动画循环
+        function animate() {
+            resizeRendererToDisplaySize(renderer);
+            // 开启裁剪
+            renderer.setScissorTest(true);
+            // render view1
+            {
+                const aspect = setScissorForElement(view1);
+                camera.aspect = aspect;
+                camera.updateProjectionMatrix();
+                cameraHelper.update();
+                // 在原始view中不显示相机辅助视图
+                cameraHelper.visible = false;
+
+                scene.background.set(0x000000);
+                renderer.render(scene, camera);
+            }
+            // render view2
+            {
+                const aspect = setScissorForElement(view2);
+                camera2.aspect = aspect;
+                camera2.updateProjectionMatrix();
+                cameraHelper.visible = true;
+
+                scene.background.set(0x000040);
+                renderer.render(scene, camera2);
+            }
+            // 请求动画帧
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+    } else {
+        const warning = WEBGL.getWebGLErrorMessage();
+        document.body.appendChild(warning);
+    }
+</script>
+</body>
+
+</html>

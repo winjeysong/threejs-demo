@@ -67,7 +67,31 @@ export class DegRadHelper {
     }
 }
 
+export class MinMaxHelper {
+    constructor(obj, minProp, maxProp, step) {
+        this.obj = obj;
+        this.minProp = minProp;
+        this.maxProp = maxProp;
+        this.step = step;
+    }
+    get min() {
+        return this.obj[this.minProp];
+    }
+    set min(v) {
+        this.obj[this.minProp] = v;
+        this.obj[this.maxProp] = Math.max(this.obj[this.maxProp], v + this.step);
+    }
+    get max() {
+        return this.obj[this.maxProp];
+    }
+    set max(v) {
+        this.obj[this.maxProp] = v;
+        this.min = this.min; // 会调用min setter
+    }
+}
+
 window.resizeRendererToDisplaySize = resizeRendererToDisplaySize;
 window.AxisGridHelper = AxisGridHelper;
 window.ColorHelper = ColorHelper;
 window.DegRadHelper = DegRadHelper;
+window.MinMaxHelper = MinMaxHelper;
