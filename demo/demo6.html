@@ -20,10 +20,11 @@
 
 <body>
 <canvas id="canvas"></canvas>
-<script src="../library/three.js"></script>
-<script src="../library/checker.js"></script>
-<script src="../utils/index.js"></script>
-<script>
+
+<script type="module">
+    import * as THREE from '../library/three.module.js';
+    import WEBGL from "../library/checker.js";
+    import { resizeRendererToDisplaySize } from '../utils/index.js';
 
     const canvas = document.querySelector('#canvas');
 
