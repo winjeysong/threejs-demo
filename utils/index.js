@@ -90,8 +90,32 @@ export class MinMaxHelper {
     }
 }
 
-window.resizeRendererToDisplaySize = resizeRendererToDisplaySize;
-window.AxisGridHelper = AxisGridHelper;
-window.ColorHelper = ColorHelper;
-window.DegRadHelper = DegRadHelper;
-window.MinMaxHelper = MinMaxHelper;
+// 保证 near 一直小于 far
+// 保证 fog 颜色和场景的 background 同步
+export class FogHelper {
+    constructor(fog, bg) {
+        this.fog = fog;
+        this.bg = bg;
+    }
+    get near() {
+        return this.fog.near;
+    }
+    set near(v) {
+        this.fog.near = v;
+        this.fog.far = Math.max(v, this.fog.far);
+    }
+    get far() {
+        return this.fog.far;
+    }
+    set far(v) {
+        this.fog.far = v;
+        this.fog.near = Math.min(v, this.fog.near);
+    }
+    get color() {
+        return `#${this.fog.color.getHexString()}`;
+    }
+    set color(v) {
+        this.fog.color.set(v);
+        this.bg.set(v);
+    }
+}

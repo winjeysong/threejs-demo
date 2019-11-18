@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>带有迷雾效果的场景</title>
+    <style>
+        html, body {
+            margin: 0;
+            height: 100%;
+        }
+
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+<canvas id="canvas"></canvas>
+
+<script type="module">
+    import * as THREE from '../../library/three.module.js';
+    import WEBGL from "../../library/checker.js";
+    import { resizeRendererToDisplaySize } from '../../utils/index.js';
+    import { GUI } from "../../library/dat.gui.module.js";
+    import { FogHelper } from "../../utils/index.js";
+
+    function createCube(scene, { geo = [1, 1, 1], color, position }) {
+        const geometry = new THREE.BoxGeometry(...geo);
+        const material = new THREE.MeshPhongMaterial({ color });
+        const cube = new THREE.Mesh(geometry, material);
+        scene.add(cube);
+        Object.keys(position).forEach(p => {
+            cube.position[p] = position[p];
+        });
+        return cube;
+    }
+    const canvas = document.querySelector('#canvas');
+
+    if (WEBGL.isWebGLAvailable()) {
+        // 创建场景
+        var scene = new THREE.Scene();
+        // 使用透视相机
+        var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10);
+        // 渲染器
+        var renderer = new THREE.WebGLRenderer({ canvas });
+        // 第三个参数传入false，不设置canvas的CSS尺寸
+        renderer.setSize(window.innerWidth, window.innerHeight, false);
+
+        const cubes = [
+            createCube(scene, { color: 0x44aa88, position: { x: 0, z: -3 } }),
+            createCube(scene, { color: 0x8844aa, position: { x: -2, y: 2, z: -2 } }),
+            createCube(scene, { color: 0xaa8844, position: { x: 2, y: -1, z: -1 }}),
+        ];
+
+        // 防止物体和摄像机在同一位置
+        camera.position.z = 2;
+
+        // 添加灯光，并将材质设置为MeshPhongMaterial类型，这样三维效果更明显
+        const lightColor = 0xffffff;
+        const intensity = 1;
+        const light = new THREE.DirectionalLight(lightColor, intensity);
+        light.position.set(-1, 2, 4);
+        scene.add(light);
+
+        const gui = new GUI;
+
+        // 添加迷雾
+        {
+            const near = 1;
+            const far = 6;
+            const color = 'lightblue';
+            scene.fog = new THREE.Fog(color, near, far);
+            scene.background = new THREE.Color(color);
+
+            // 为迷雾添加dat.GUI
+            const fogHelper = new FogHelper(scene.fog, scene.background);
+            // 监听 near、far 的改变，两者之间联动，保证 near 一直小于 far
+            gui.add(fogHelper, 'near', near, far).listen();
+            gui.add(fogHelper, 'far', near, far).listen();
+            // 同步切换迷雾颜色和场景背景色
+            gui.addColor(fogHelper, 'color');
+        }
+
+
+        // 动画循环
+        function animate() {
+            // 请求动画帧
+            requestAnimationFrame(animate);
+            cubes.forEach((cube, idx) => {
+                const step = (idx + 1) * 0.01;
+                cube.rotation.x += step;
+                cube.rotation.y += step;
+                cube.rotation.z += step;
+            });
+
+            if (resizeRendererToDisplaySize(renderer)) {
+                const canvas = renderer.domElement;
+                camera.aspect = canvas.clientWidth / canvas.clientHeight; // 为了解决拉伸比例失调的问题，需要设置相机的aspect为canvas的宽高比
+                camera.updateProjectionMatrix();
+            }
+
+            renderer.render(scene, camera);
+        }
+        animate();
+
+    } else {
+        var warning = WEBGL.getWebGLErrorMessage();
+        document.body.appendChild(warning);
+    }
+</script>
+</body>
+
+</html>
