@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8">
-    <title>载入obj文件</title>
+    <title>载入gLTF文件</title>
     <style>
         html, body {
             margin: 0;
@@ -24,10 +24,8 @@
     import WEBGL from "../library/checker.js";
     import * as THREE from '../library/three.module.js';
     import { OrbitControls } from "../library/orbitControls.js";
-    import { resizeRendererToDisplaySize } from '../utils/index.js';
-    import { OBJLoader2 } from '../library/OBJLoader2.js';
-    import { MTLLoader } from "../library/MTLLoader.js";
-    import { MtlObjBridge } from "../library/MtlObjBridge.js";
+    import { resizeRendererToDisplaySize, frameArea } from '../utils/index.js';
+    import { GLTFLoader } from "../library/GLTFLoader.js";
 
     const canvas = document.querySelector('#canvas');
 
@@ -93,17 +91,27 @@
         }
 
         // 载入模型
-        // 载入mtl文件，为模型增加texture
+        // 载入gltf文件
+        // 计算模型的大小与中心坐标
+        // 让相机视野在合理范围内
         {
-            const objLoader = new OBJLoader2();
-            const mtlLoader = new MTLLoader();
-            mtlLoader.load('../../assets/obj/windmill/windmill_001.mtl', mtlParseResult => {
-                const materials = MtlObjBridge.addMaterialsFromMtlLoader(mtlParseResult);
-                materials.Material.side = THREE.DoubleSide; // 使风车叶片双面化
-                objLoader.addMaterials(materials);
-                objLoader.load('../../assets/obj/windmill/windmill_001.obj', root => {
-                    scene.add(root);
-                });
+            const gltfLoader = new GLTFLoader();
+            const url = '../../assets/gltf/poly-city/scene.gltf';
+            gltfLoader.load(url, gltf => {
+                const root = gltf.scene;
+                scene.add(root);
+
+                const box = new THREE.Box3().setFromObject(root);
+                const boxSize = box.getSize(new THREE.Vector3()).length();
+                const boxCenter = box.getCenter(new THREE.Vector3());
+                console.log('boxSize', boxSize);
+                console.log('boxCenter', boxCenter);
+
+                frameArea(boxSize * 1.2, boxSize, boxCenter, camera);
+
+                controls.maxDistance = boxSize * 10;
+                controls.target.copy(boxCenter);
+                controls.update();
             });
         }
 
