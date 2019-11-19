@@ -119,3 +119,23 @@ export class FogHelper {
         this.bg.set(v);
     }
 }
+
+// https://threejsfundamentals.org/threejs/lessons/threejs-load-obj.html
+export function frameArea(sizeToFitScreen, boxSize, boxCenter, camera) {
+    const halfSizeToFitScreen = sizeToFitScreen / 2;
+    const halfFovY = THREE.Math.degToRad(camera.fov / 2);
+    const distance = halfSizeToFitScreen / Math.tan(halfFovY);
+
+    const direction = (new THREE.Vector3())
+        .subVectors(camera.position, boxCenter)
+        .multiply(new THREE.Vector3(1, 0, 1)) // 将初始视角转换到 XZ 平面
+        .normalize();
+    camera.position.copy(direction.multiplyScalar(distance).add(boxCenter));
+
+    camera.near = boxSize / 100;
+    camera.far = boxSize * 100;
+
+    camera.updateProjectionMatrix();
+
+    camera.lookAt(boxCenter.x, boxCenter.y, boxCenter.z);
+}
