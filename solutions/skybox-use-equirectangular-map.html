@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>3D全景（使用equirectangular map）</title>
+    <style>
+        html, body {
+            margin: 0;
+            height: 100%;
+        }
+
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+            display: block;
+        }
+
+    </style>
+</head>
+
+<body>
+<canvas id="canvas"></canvas>
+
+<script type="module">
+    import * as THREE from '../library/three.module.js';
+    import WEBGL from "../library/checker.js";
+    import { OrbitControls } from "../library/orbitControls.js";
+    import { resizeRendererToDisplaySize } from '../utils/index.js';
+
+    function createCube(scene, { geo = [1, 1, 1], color, position }) {
+        const geometry = new THREE.BoxGeometry(...geo);
+        const material = new THREE.MeshPhongMaterial({ color });
+        const cube = new THREE.Mesh(geometry, material);
+        scene.add(cube);
+        Object.keys(position).forEach(p => {
+            cube.position[p] = position[p];
+        });
+        return cube;
+    }
+    const canvas = document.querySelector('#canvas');
+
+    if (WEBGL.isWebGLAvailable()) {
+        // 创建场景
+        var scene = new THREE.Scene();
+        // 使用透视相机
+        var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
+        // 渲染器
+        var renderer = new THREE.WebGLRenderer({ canvas });
+        // 第三个参数传入false，不设置canvas的CSS尺寸
+        renderer.setSize(window.innerWidth, window.innerHeight, false);
+
+        const cubes = [
+            createCube(scene, { color: 0x44aa88, position: { x: 0, z: -3 } }),
+            createCube(scene, { color: 0x8844aa, position: { x: -2, y: 2, z: -2 } }),
+            createCube(scene, { color: 0xaa8844, position: { x: 2, y: -1, z: -1 }}),
+        ];
+
+        // 防止物体和摄像机在同一位置
+        camera.position.z = 4;
+
+        // 添加控制轴
+        const controls = new OrbitControls(camera, canvas);
+        controls.target.set(0, 0, 0);
+        controls.update();
+
+        // 添加灯光
+        const lightColor = 0xffffff;
+        const intensity = 1;
+        const light = new THREE.DirectionalLight(lightColor, intensity);
+        light.position.set(-1, 2, 4);
+        scene.add(light);
+
+        // 额外创建一个scene用来载入背景图片
+        const bgScene = new THREE.Scene();
+        let bgMesh;
+        {
+            const loader = new THREE.TextureLoader();
+            const texture = loader.load('../assets/images/snowy_park_4k.jpg');
+            texture.magFilter = THREE.LinearFilter; // How the texture is sampled when a texel covers more than one pixel
+            texture.minFilter = THREE.LinearFilter; // How the texture is sampled when a texel covers less than one pixel
+
+            const shader = THREE.ShaderLib.equirect;
+            const mat = new THREE.ShaderMaterial({
+                fragmentShader: shader.fragmentShader,
+                vertexShader: shader.vertexShader,
+                uniforms: shader.uniforms,
+                depthWrite: false, // neither test nor write to the depth buffer
+                side: THREE.BackSide, // see the inside of the box
+            });
+            mat.uniforms.tEquirect.value = texture;
+            const geo = new THREE.BoxBufferGeometry(2, 2, 2);
+            bgMesh = new THREE.Mesh(geo, mat);
+            bgScene.add(bgMesh);
+        }
+
+        // 动画循环
+        function animate() {
+            // 请求动画帧
+            requestAnimationFrame(animate);
+            cubes.forEach((cube, idx) => {
+                const step = (idx + 1) * 0.01;
+                cube.rotation.x += step;
+                cube.rotation.y += step;
+                cube.rotation.z += step;
+            });
+
+            if (resizeRendererToDisplaySize(renderer)) {
+                const canvas = renderer.domElement;
+                camera.aspect = canvas.clientWidth / canvas.clientHeight; // 为了解决拉伸比例失调的问题，需要设置相机的aspect为canvas的宽高比
+                camera.updateProjectionMatrix();
+            }
+
+            // 保证背景贴图的位置和相机位置重合
+            bgMesh.position.copy(camera.position);
+            renderer.render(bgScene, camera);
+            renderer.render(scene, camera);
+        }
+        animate();
+
+    } else {
+        var warning = WEBGL.getWebGLErrorMessage();
+        document.body.appendChild(warning);
+    }
+</script>
+</body>
+
+</html>
