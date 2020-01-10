@@ -40,8 +40,6 @@
         var renderer = new THREE.WebGLRenderer({ canvas });
         // 第三个参数传入false，不设置canvas的CSS尺寸
         renderer.setSize(window.innerWidth, window.innerHeight, false);
-        // 添加canvas元素到body中
-        document.body.appendChild(renderer.domElement);
 
         // 添加控制轴，允许用户拖动控制
         const controls = new OrbitControls(camera, canvas);
