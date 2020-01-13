@@ -47,6 +47,8 @@
         var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
         // 渲染器
         var renderer = new THREE.WebGLRenderer({ canvas });
+        // 渲染每帧前不自动清除，不设置为false会导致看不到以hdri作为背景的图片
+        renderer.autoClearColor = false;
         // 第三个参数传入false，不设置canvas的CSS尺寸
         renderer.setSize(window.innerWidth, window.innerHeight, false);
 
