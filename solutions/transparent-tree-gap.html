@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>树的缝隙</title>
+    <style>
+        html, body {
+            margin: 0;
+            height: 100%;
+        }
+
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+            display: block;
+        }
+
+    </style>
+</head>
+
+<body>
+<canvas id="canvas"></canvas>
+
+<script type="module">
+    import * as THREE from '../library/three.module.js';
+    import WEBGL from "../library/checker.js";
+    import { OrbitControls } from "../library/orbitControls.js";
+    import { resizeRendererToDisplaySize, hsl } from '../utils/index.js';
+
+    function createLight(scene, ...position) {
+        const lightColor = 0xffffff;
+        const intensity = 1;
+        const light = new THREE.DirectionalLight(lightColor, intensity);
+        light.position.set(...position);
+        scene.add(light);
+    }
+
+    const canvas = document.querySelector('#canvas');
+
+    if (WEBGL.isWebGLAvailable()) {
+        // 创建场景
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(255, 255, 255);
+        // 使用透视相机
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 25);
+        camera.position.set(0.5, 1, 0.5);
+        // 渲染器
+        const renderer = new THREE.WebGLRenderer({ canvas });
+        // 第三个参数传入false，不设置canvas的CSS尺寸
+        renderer.setSize(window.innerWidth, window.innerHeight, false);
+
+        const loader = new THREE.TextureLoader();
+        function createPlane(scene, { geo = [1, 1], color, rot, url }) {
+            const geometry = new THREE.PlaneBufferGeometry(...geo);
+            const texture = loader.load(url, render);
+            const material = new THREE.MeshPhongMaterial({
+                color,
+                map: texture,
+                alphaTest: 0.5,
+                // transparent: true,
+                side: THREE.DoubleSide,
+            });
+            const cube = new THREE.Mesh(geometry, material);
+            scene.add(cube);
+            Object.keys(rot).forEach(r => {
+                cube.rotation[r] = rot[r];
+            });
+            return cube;
+        }
+
+        const planes = [
+            createPlane(scene, { color: 'white', rot: { y: 0 }, url: '../assets/images/tree-01.png' }),
+            createPlane(scene, { color: 'white', rot: { y: Math.PI * 0.5 }, url: '../assets/images/tree-02.png' }),
+        ];
+
+        // 添加控制轴
+        const controls = new OrbitControls(camera, canvas);
+        controls.target.set(0, 0, 0);
+        controls.update();
+
+        // 添加两个灯光，使物体每面都被照亮
+        createLight(scene, -1, 2, 4);
+        createLight(scene, 1, -1, -2);
+
+        // 按需绘制
+        let renderRequested = false;
+        function render() {
+            renderRequested = undefined;
+
+            if (resizeRendererToDisplaySize(renderer)) {
+                const canvas = renderer.domElement;
+                camera.aspect = canvas.clientWidth / canvas.clientHeight; // 为了解决拉伸比例失调的问题，需要设置相机的aspect为canvas的宽高比
+                camera.updateProjectionMatrix();
+            }
+
+            renderer.render(scene, camera);
+        }
+        render();
+
+        function requestRenderNotRequested() {
+            if (!renderRequested) {
+                renderRequested = true;
+                requestAnimationFrame(render);
+            }
+        }
+
+        controls.addEventListener('change', requestRenderNotRequested);
+        window.addEventListener('resize', requestRenderNotRequested);
+    } else {
+        const warning = WEBGL.getWebGLErrorMessage();
+        document.body.appendChild(warning);
+    }
+</script>
+</body>
+
+</html>

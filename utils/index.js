@@ -161,3 +161,7 @@ export function dumpObject(obj, lines = [], isLast = true, prefix = '') {
     });
     return lines;
 }
+
+export function hsl(h, s, l) {
+    return (new THREE.Color()).setHSL(h, s, l);
+}
